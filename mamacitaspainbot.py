@@ -1,56 +1,54 @@
-import asyncio
+# mamacitaspainbot.py
 import os
 import requests
 from bs4 import BeautifulSoup
-from telegram import Bot
 from dotenv import load_dotenv
+from telegram import Update
+from telegram.ext import CommandHandler, ContextTypes
 
-# Carrega as variáveis do .env
 load_dotenv()
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-URL = "https://icp.administracionelectronica.gob.es/icpplus/acEntrada"
-
-if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
-    print("⚠️ Defina TELEGRAM_TOKEN e TELEGRAM_CHAT_ID no arquivo .env")
-    exit(1)
-
-bot = Bot(token=TELEGRAM_TOKEN)
+URL_CITA = "https://icp.administracionelectronica.gob.es/icpplus/acEntrada"
+URL_TEST = "https://icp.administracionelectronica.gob.es/icpplus/index.html"
 
 def check_disponibilidade():
-    session = requests.Session()
-    headers = {"User-Agent": "Mozilla/5.0"}
-    response = session.get(URL, headers=headers)
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    select = soup.find("select", {"name": "provincias"})
-    if not select:
-        print("❌ Select 'provincias' não encontrado.")
+    try:
+        session = requests.Session()
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = session.get(URL_CITA, headers=headers, timeout=10)
+        soup = BeautifulSoup(response.text, "html.parser")
+        select = soup.find("select", {"name": "provincias"})
+        if not select:
+            return False
+        provincias = [opt.text.strip() for opt in select.find_all("option")]
+        return any("valencia" in p.lower() for p in provincias)
+    except Exception as e:
+        print("Erro:", e)
         return False
 
-    provincias = [opt.text.strip() for opt in select.find_all("option")]
-    print("Provincias encontradas:", provincias)
+async def home_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🔎 Iniciando verificação de disponibilidade para VALENCIA...")
 
-    return any("valencia" in p.lower() for p in provincias)
-
-async def send_alert(msg):
-    await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
-
-async def main():
-    await send_alert("🔎 Iniciando verificação de disponibilidade para VALENCIA...")
-    while True:
-        try:
+    async def monitor():
+        while True:
             if check_disponibilidade():
-                await send_alert("🚨 Pode haver disponibilidade de cita para VALENCIA. Verifique no site oficial.")
-                print("Mensagem enviada. Finalizando o script.")
+                await update.message.reply_text("🚨 Pode haver disponibilidade de cita para VALENCIA. Verifique no site oficial.")
                 break
             else:
                 print("Nada disponível. Verificando novamente em 10 minutos.")
-        except Exception as e:
-            print("Erro:", e)
+            await asyncio.sleep(600)
 
-        await asyncio.sleep(600)  # espera 10 minutos
+    import asyncio
+    asyncio.create_task(monitor())
 
-if __name__ == "__main__":
-    asyncio.run(main())
+async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🌐 Testando conexão com o site do governo espanhol...")
+    try:
+        response = requests.get(URL_TEST, timeout=10)
+        if response.status_code == 200:
+            await update.message.reply_text("✅ Conexão aceita! Parece que você está acessando da Espanha ou via proxy.")
+        else:
+            await update.message.reply_text(f"⚠️ Resposta inesperada. Código: {response.status_code}")
+    except requests.exceptions.RequestException:
+        await update.message.reply_text("❌ Não foi possível acessar o site. Provavelmente você está fora da Espanha.")

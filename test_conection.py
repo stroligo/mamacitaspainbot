@@ -1,6 +1,7 @@
+# test_conection.py
 import requests
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import ContextTypes
 
 URL = "https://icp.administracionelectronica.gob.es/icpplus/index.html"
 
@@ -22,15 +23,3 @@ async def test_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Timeout: não foi possível conectar (provável bloqueio geográfico).")
     except Exception as e:
         await update.message.reply_text(f"❌ Erro desconhecido: {e}")
-
-# Configuração do bot e adicionando o handler
-if __name__ == "__main__":
-    import os
-    from dotenv import load_dotenv
-
-    load_dotenv()
-    TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-
-    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    application.add_handler(CommandHandler("test", test_command))
-    application.run_polling()
