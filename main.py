@@ -1,22 +1,27 @@
 import os
-import asyncio
-import requests
+from dotenv import load_dotenv
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    ContextTypes,
+)
 
+load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
-# Comando /home
+if not TELEGRAM_TOKEN:
+    raise ValueError("Erro: variável TELEGRAM_TOKEN não definida. Configure seu token no .env ou nas variáveis do Replit.")
+
 async def home_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🏠 Bem-vindo ao MamacitaSpainBot!")
+    await update.message.reply_text("🏠 Comando /home funcionando!")
 
-# URL para testar conexão
-URL = "https://icp.administracionelectronica.gob.es/icpplus/index.html"
-
-# Comando /test
 async def test_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🔎 Testando a conexão...")
 
+    import requests
+
+    URL = "https://icp.administracionelectronica.gob.es/icpplus/index.html"
     headers = {"User-Agent": "Mozilla/5.0"}
     try:
         response = requests.get(URL, headers=headers, timeout=5)
@@ -39,16 +44,9 @@ async def main():
     app.add_handler(CommandHandler("home", home_command))
     app.add_handler(CommandHandler("test", test_command))
 
+    print("🤖 Bot rodando... Comandos: /home, /test")
     await app.run_polling()
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except RuntimeError as e:
-        # Para Replit que já possui um event loop rodando
-        if "event loop is already running" in str(e):
-            loop = asyncio.get_event_loop()
-            loop.create_task(main())
-            loop.run_forever()
-        else:
-            raise
+    import asyncio
+    asyncio.run(main())
