@@ -1,11 +1,20 @@
 import asyncio
+import os
 import requests
 from bs4 import BeautifulSoup
 from telegram import Bot
+from dotenv import load_dotenv
 
-TELEGRAM_TOKEN = "7602533921:AAGUYgqng7E1bI0lyorWHe70iwvuiwdOtKs"
-TELEGRAM_CHAT_ID = "5010705669"
+# Carrega as variáveis do .env
+load_dotenv()
+
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 URL = "https://icp.administracionelectronica.gob.es/icpplus/acEntrada"
+
+if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+    print("⚠️ Defina TELEGRAM_TOKEN e TELEGRAM_CHAT_ID no arquivo .env")
+    exit(1)
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
@@ -41,7 +50,7 @@ async def main():
         except Exception as e:
             print("Erro:", e)
 
-        await asyncio.sleep(600)
+        await asyncio.sleep(600)  # espera 10 minutos
 
 if __name__ == "__main__":
     asyncio.run(main())
